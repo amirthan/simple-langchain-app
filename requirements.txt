@@ -10,3 +10,4 @@ langchain-huggingface
 transformers
 streamlit
 langchain-together
+langchain-ollama
