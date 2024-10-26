@@ -6,6 +6,7 @@ from langchain_cohere import ChatCohere
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_groq import ChatGroq
 import os
+from langchain_community.llms import Ollama
 
 # Function to safely get API keys
 def get_api_key(key_name, env_var_name):
@@ -41,14 +42,18 @@ huggingface_chat_model = create_chat_model(
     repetition_penalty=1.03,) ,verbose=True
 )
 
-# Remove the models that are not initialized
+# Initialize Ollama model (we'll use a placeholder here)
+ollama_model = Ollama(model="llama2")
+
+# Add Ollama to available models
 available_models = {
     "openai": openai_chat_model,
     "together": together_chat_model,
     "anthropic": anthropic_chat_model,
     "cohere": cohere_chat_model,
     "groq": groq_chat_model,
-    "huggingface": huggingface_chat_model
+    "huggingface": huggingface_chat_model,
+    "ollama": ollama_model
 }
 
 available_models = {k: v for k, v in available_models.items() if v is not None}

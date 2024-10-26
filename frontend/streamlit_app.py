@@ -2,7 +2,8 @@ import streamlit as st
 import sys
 import os
 from dotenv import load_dotenv
-
+import subprocess
+import shutil
 
 # Add the project root directory to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -12,6 +13,40 @@ load_dotenv(dotenv_path=os.path.join(project_root, '.env.local'))  # Load enviro
 
 st.title("🦜🔗 Language Translation App")
 
+def check_ollama_installed():
+    return shutil.which('ollama') is not None
+
+def run_ollama_setup():
+    setup_script = os.path.join(project_root, 'setup_ollama.sh')
+    subprocess.run(['bash', setup_script], check=True)
+
+def start_ollama_serve():
+    subprocess.Popen(['ollama', 'serve'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def stop_ollama_service():
+    try:
+        subprocess.run(['sudo', 'systemctl', 'stop', 'ollama.service'], check=True)
+        st.success("Ollama service stopped successfully.")
+    except subprocess.CalledProcessError:
+        st.error("Failed to stop Ollama service. Make sure you have the necessary permissions.")
+
+# Check if Ollama is installed, if not, run the setup
+if not check_ollama_installed():
+    st.warning("Ollama is not installed. Running setup script...")
+    run_ollama_setup()
+    st.success("Ollama setup completed.")
+
+# Start Ollama serve
+start_ollama_serve()
+
+# Register the stop function to be called when the app exits
+import atexit
+atexit.register(stop_ollama_service)
+
+# Add stop button in the sidebar
+if st.sidebar.button("Stop Ollama Service"):
+    stop_ollama_service()
+
 try:
     from chains import translation_chains
     print("Successfully imported translation_chains")
@@ -20,12 +55,31 @@ except ImportError as e:
     st.error(f"Failed to import translation_chains: {str(e)}")
     st.stop()
 
-# Add a dropdown to select the model in the sidebar
-available_models = list(translation_chains.keys())
+# Add Ollama to the available models
+available_models = list(translation_chains.keys()) + ["ollama"]
 selected_model = st.sidebar.selectbox("Select Model:", available_models)
 
-# Use the selected model's translation chain
-selected_chain = translation_chains[selected_model]
+# Ollama model selection
+if selected_model == "ollama":
+    # Get the list of available Ollama models
+    ollama_models = subprocess.check_output(["ollama", "list"]).decode().strip().split('\n')[1:]
+    ollama_models = [model.split()[0] for model in ollama_models]
+    
+    selected_ollama_model = st.sidebar.selectbox("Select Ollama Model:", ollama_models)
+
+    # Initialize Ollama model
+    from langchain_community.llms import Ollama
+    ollama_model = Ollama(model=selected_ollama_model)
+
+    # Create Ollama chain
+    from langchain_core.prompts import ChatPromptTemplate
+    ollama_prompt = ChatPromptTemplate.from_template("Translate this from English to {language}: {text}")
+    ollama_chain = ollama_prompt | ollama_model
+
+    selected_chain = ollama_chain
+else:
+    # Use the selected model's translation chain
+    selected_chain = translation_chains[selected_model]
 
 def generate_response(input_text, language="Finnish"):
     result = selected_chain.invoke({"language": language, "text": input_text})
@@ -40,8 +94,6 @@ with st.form("translation_form"):
     submitted = st.form_submit_button("Translate")
     if submitted:
         generate_response(text, language)
-
-#st.sidebar.write("Available models:", ", ".join(available_models))
 
 # Add a section to display missing API keys
 from apikeys import check_api_keys
