@@ -1,0 +1,4 @@
+python-dotenv
+#install packages
+langchain
+langchain-openai
