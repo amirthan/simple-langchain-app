@@ -1,12 +1,12 @@
 python-dotenv
-#install packages
 langchain
-langchain-openai
-langchain-together
-langchain-anthropic
-langchain-cohere
-#langchain-google-genai 
-#pillow
-langchain-groq
+langchain_openai
+langchain_anthropic
+langchain_cohere
+langchain_groq
+langchain_community
+pydantic
 langchain-huggingface
 transformers
+streamlit
+langchain-together

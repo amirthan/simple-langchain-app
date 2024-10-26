@@ -13,6 +13,9 @@ pip install -r requirements.txt
 # run main.py
 python main.py
 
+# to run streamlit app
+streamlit run frontend/streamlit_app.py
+
 
 # important links
 ## langchain
@@ -71,4 +74,11 @@ The list of avaialble models could be found here https://huggingface.co/models
 you can define other parameters pipelinekwargs, model_kwargs based on your needs and those information canbe found in the model documentation.
 
 Huggingface integration https://python.langchain.com/docs/integrations/providers/huggingface/
+
+
+## streamlit
+
+https://docs.streamlit.io/
+
+https://docs.streamlit.io/develop/tutorials
 
