@@ -2,3 +2,4 @@ python-dotenv
 #install packages
 langchain
 langchain-openai
+langchain-together

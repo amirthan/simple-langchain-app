@@ -6,3 +6,4 @@ load_dotenv(dotenv_path='.env.local')
 
 # Fetch the API key
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+TOGETHER_API_KEY = os.getenv('TOGETHER_API_KEY')
