@@ -3,3 +3,10 @@ python-dotenv
 langchain
 langchain-openai
 langchain-together
+langchain-anthropic
+langchain-cohere
+#langchain-google-genai 
+#pillow
+langchain-groq
+langchain-huggingface
+transformers
