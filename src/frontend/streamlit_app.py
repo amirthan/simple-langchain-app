@@ -4,12 +4,18 @@ import os
 from dotenv import load_dotenv
 import subprocess
 import shutil
+from chains.chains import translation_chains
+import atexit
+from api.apikeys import check_api_keys
+from langchain_community.llms import Ollama
+from langchain_core.prompts import ChatPromptTemplate
+
 
 # Add the project root directory to the Python path
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(project_root)
+#project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+#sys.path.append(project_root)
 
-load_dotenv(dotenv_path=os.path.join(project_root, '.env.local'))  # Load environment variables from .env.local file
+#load_dotenv(dotenv_path=os.path.join(project_root, '.env.local'))  # Load environment variables from .env.local file
 
 st.title("🦜🔗 Language Translation App")
 
@@ -40,7 +46,6 @@ if not check_ollama_installed():
 start_ollama_serve()
 
 # Register the stop function to be called when the app exits
-import atexit
 atexit.register(stop_ollama_service)
 
 # Add stop button in the sidebar
@@ -48,7 +53,6 @@ if st.sidebar.button("Stop Ollama Service"):
     stop_ollama_service()
 
 try:
-    from chains import translation_chains
     print("Successfully imported translation_chains")
 except ImportError as e:
     print("Error importing translation_chains:", str(e))
@@ -68,11 +72,9 @@ if selected_model == "ollama":
     selected_ollama_model = st.sidebar.selectbox("Select Ollama Model:", ollama_models)
 
     # Initialize Ollama model
-    from langchain_community.llms import Ollama
     ollama_model = Ollama(model=selected_ollama_model)
 
     # Create Ollama chain
-    from langchain_core.prompts import ChatPromptTemplate
     ollama_prompt = ChatPromptTemplate.from_template("Translate this from English to {language}: {text}")
     ollama_chain = ollama_prompt | ollama_model
 
@@ -96,7 +98,6 @@ with st.form("translation_form"):
         generate_response(text, language)
 
 # Add a section to display missing API keys
-from apikeys import check_api_keys
 missing_keys = check_api_keys()
 if missing_keys:
     st.sidebar.warning("Missing API Keys:")

@@ -13,6 +13,12 @@ pip install -r requirements.txt
 # run main.py
 python main.py
 
+# setup python path
+unset PYTHONPATH
+echo $PYTHONPATH
+export PYTHONPATH="$(pwd)/src:$PYTHONPATH"
+
+
 # to run streamlit app
 streamlit run frontend/streamlit_app.py
 

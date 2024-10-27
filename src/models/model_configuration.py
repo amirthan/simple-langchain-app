@@ -11,7 +11,7 @@ from langchain_community.llms import Ollama
 # Function to safely get API keys
 def get_api_key(key_name, env_var_name):
     try:
-        from apikeys import OPENAI_API_KEY, TOGETHER_API_KEY, ANTHROPIC_API_KEY, COHERE_API_KEY, GROQ_API_KEY, HF_TOKEN
+        from src.api.apikeys import OPENAI_API_KEY, TOGETHER_API_KEY, ANTHROPIC_API_KEY, COHERE_API_KEY, GROQ_API_KEY, HF_TOKEN
         return locals().get(key_name)
     except ImportError:
         return os.getenv(env_var_name)

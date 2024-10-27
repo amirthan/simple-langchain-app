@@ -1,7 +1,7 @@
 #LLM with LCEL chain - use this instead
-from prompt_templates import translation_prompt_template
-from model_configuration import available_models
-from output_parsers import translation_parser
+from prompts.prompt_templates import translation_prompt_template
+from models.model_configuration import available_models
+from output.output_parsers import translation_parser
 
 
 
