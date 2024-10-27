@@ -110,13 +110,20 @@ providers = model_configuration.get_providers()
 models_by_provider = model_configuration.get_models_by_provider()
 
 # Provider selection in sidebar
-selected_provider = st.sidebar.selectbox("Select Provider:", providers)
+if 'providers' not in st.session_state:
+    st.session_state.providers = model_configuration.get_providers()
+selected_provider = st.sidebar.selectbox("Select Provider:", st.session_state.providers)
+
+# Get fresh models list every time
+models_by_provider = model_configuration.get_models_by_provider()
 
 # Model selection based on provider
 if selected_provider:
     # Force refresh models list for Ollama provider
     if selected_provider == "ollama":
         model_configuration.update_ollama_models()
+        # Update models_by_provider after refresh
+        models_by_provider = model_configuration.get_models_by_provider()
     
     available_provider_models = models_by_provider.get(selected_provider, [])
     
@@ -126,9 +133,10 @@ if selected_provider:
             st.sidebar.warning("No Ollama models available. Please pull a model first.")
             selected_model = None
         else:
-            # Store selection in session state
-            if 'selected_model' not in st.session_state:
-                st.session_state.selected_model = available_provider_models[0] if available_provider_models else None
+            # Clear session state if model no longer exists
+            if ('selected_model' in st.session_state and 
+                st.session_state.selected_model not in available_provider_models):
+                del st.session_state.selected_model
                 
             selected_model = st.sidebar.selectbox(
                 "Select Ollama Model:",
@@ -154,6 +162,8 @@ if selected_provider == "ollama":
             if pull_ollama_model(new_model_name):
                 # Force refresh of model configuration after successful pull
                 model_configuration.update_ollama_models()
+                # Update models list
+                st.session_state.models_by_provider = model_configuration.get_models_by_provider()
                 st.rerun()
 
     # Only show other controls if there are models available
@@ -161,14 +171,21 @@ if selected_provider == "ollama":
         if st.sidebar.button("Pull Ollama Model"):
             if pull_ollama_model(selected_model):
                 model_configuration.update_ollama_models()
+                # Update models list
+                st.session_state.models_by_provider = model_configuration.get_models_by_provider()
                 st.rerun()
         
         if st.sidebar.button("Remove Ollama Model"):
             if remove_ollama_model(selected_model):
                 # Force refresh of model configuration after successful removal
                 model_configuration.update_ollama_models()
+                # Update models list
+                st.session_state.models_by_provider = model_configuration.get_models_by_provider()
+                # Clear selected model from session state
+                if 'selected_model' in st.session_state:
+                    del st.session_state.selected_model
                 st.rerun()
-    
+
     # Always show service controls
     col1, col2 = st.sidebar.columns(2)
     with col1:
