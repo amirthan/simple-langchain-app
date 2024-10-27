@@ -88,3 +88,8 @@ https://docs.streamlit.io/
 
 https://docs.streamlit.io/develop/tutorials
 
+## Huggingface
+
+## to use ollama with huggingface
+
+https://huggingface.co/docs/hub/en/ollama

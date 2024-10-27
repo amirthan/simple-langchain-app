@@ -43,17 +43,24 @@ class ModelConfiguration:
     def update_ollama_models(self):
         """Update available Ollama models from the system"""
         try:
-            import subprocess
+            # First, remove all existing Ollama models from model_configs
+            self.model_configs = {
+                name: config for name, config in self.model_configs.items() 
+                if config["provider"] != "ollama"
+            }
+            
+            # Now fetch and add current Ollama models
             result = subprocess.run(['ollama', 'list'], capture_output=True, text=True)
             if result.returncode == 0:
                 models = result.stdout.strip().split('\n')[1:]  # Skip header
                 for model in models:
-                    model_name = model.split()[0]
-                    self.model_configs[model_name] = {
-                        "provider": "ollama",
-                        "class": Ollama,
-                        "extra_kwargs": {"model": model_name}
-                    }
+                    if model.strip():  # Check if model line is not empty
+                        model_name = model.split()[0]
+                        self.model_configs[model_name] = {
+                            "provider": "ollama",
+                            "class": Ollama,
+                            "extra_kwargs": {"model": model_name}
+                        }
         except Exception as e:
             print(f"Warning: Could not fetch Ollama models: {str(e)}")
 
@@ -111,15 +118,22 @@ class ModelConfiguration:
         self.update_ollama_models()  # Refresh Ollama models
         models_by_provider = {}
         
-        # Initialize all providers with empty lists, including Ollama
+        # Initialize all providers with empty lists
         for provider in self.get_providers():
-            models_by_provider[provider] = []
+            if provider == "ollama":
+                # For Ollama, if no models are available, add "No models available" placeholder
+                ollama_models = [model_name for model_name, config in self.model_configs.items() 
+                               if config["provider"] == "ollama"]
+                models_by_provider["ollama"] = ollama_models if ollama_models else ["No models available"]
+            else:
+                models_by_provider[provider] = []
         
-        # Add models to their respective providers
+        # Add models to their respective providers (except Ollama which is already handled)
         for model_name, config in self.model_configs.items():
             provider = config["provider"]
-            models_by_provider[provider].append(model_name)
-            
+            if provider != "ollama":  # Skip Ollama as it's already handled
+                models_by_provider[provider].append(model_name)
+        
         return models_by_provider
 
 # Create singleton instance
