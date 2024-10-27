@@ -4,12 +4,12 @@ import os
 from dotenv import load_dotenv
 import subprocess
 import shutil
-from chains.chains import translation_chains
+from chains.chains import get_translation_chain
 import atexit
 from api.apikeys import check_api_keys
 from langchain_community.llms import Ollama
 from langchain_core.prompts import ChatPromptTemplate
-from models.model_configuration import available_models
+from models.model_configuration import model_configuration
 import time
 
 
@@ -65,20 +65,31 @@ def remove_ollama_model(model_name):
         result = subprocess.run(['ollama', 'rm', model_name], check=True, capture_output=True, text=True)
         success_message = st.success(f"Successfully removed {model_name} model.")
         output_message = st.code(result.stdout)
-        time.sleep(5)
+        
+        # Force refresh model configuration
+        model_configuration.update_ollama_models()
+        
+        # Clear the session state to reset the selection
+        if 'selected_model' in st.session_state:
+            del st.session_state.selected_model
+            
+        time.sleep(2)  # Reduced sleep time
         success_message.empty()
         output_message.empty()
+        
+        # Rerun the app to refresh the UI
+        st.rerun()
         return True
     except subprocess.CalledProcessError as e:
         error_message = st.error(f"Failed to remove {model_name} model. Error: {e}")
         output_message = st.code(e.output)
-        time.sleep(5)
+        time.sleep(2)
         error_message.empty()
         output_message.empty()
         return False
     except Exception as e:
         error_message = st.error(f"An unexpected error occurred while removing {model_name} model: {str(e)}")
-        time.sleep(5)
+        time.sleep(2)
         error_message.empty()
         return False
 
@@ -94,54 +105,95 @@ start_ollama_serve()
 # Register the stop function to be called when the app exits
 atexit.register(stop_ollama_service)
 
-try:
-    print("Successfully imported translation_chains")
-except ImportError as e:
-    print("Error importing translation_chains:", str(e))
-    st.error(f"Failed to import translation_chains: {str(e)}")
-    st.stop()
+# Get providers and their models
+providers = model_configuration.get_providers()
+models_by_provider = model_configuration.get_models_by_provider()
 
-# Add Ollama to the available models
-available_model_providers = list(available_models.keys()) 
-selected_model_provider = st.sidebar.selectbox("Select Model provider:", available_model_providers)
+# Provider selection in sidebar
+selected_provider = st.sidebar.selectbox("Select Provider:", providers)
 
-
-# Ollama model selection
-if selected_model_provider == "ollama":
-    # Get the list of available Ollama models
-    ollama_models = subprocess.check_output(["ollama", "list"]).decode().strip().split('\n')[1:]
-    ollama_models = [model.split()[0] for model in ollama_models]
-    # Add "Add new model" option to the list
-    ollama_models = ["Add new model"] + ollama_models
+# Model selection based on provider
+if selected_provider:
+    # Force refresh models list for Ollama provider
+    if selected_provider == "ollama":
+        model_configuration.update_ollama_models()
     
-    selected_ollama_model = st.sidebar.selectbox("Select Ollama Model:", ollama_models)
+    available_provider_models = models_by_provider.get(selected_provider, [])
     
-    # Show input field for new model name if "Add new model" is selected
-    if selected_ollama_model == "Add new model":
-        new_model_name = st.sidebar.text_input("Enter new model name:")
-        if st.sidebar.button("Pull Ollama Model") and new_model_name:
-            pull_ollama_model(new_model_name)
-            st.rerun()  # Rerun the app to update the model list
+    # Special handling for Ollama provider
+    if selected_provider == "ollama":
+        if not available_provider_models:
+            st.sidebar.warning("No Ollama models available. Please pull a model first.")
+            selected_model = None
+        else:
+            # Store selection in session state
+            if 'selected_model' not in st.session_state:
+                st.session_state.selected_model = available_provider_models[0] if available_provider_models else None
+                
+            selected_model = st.sidebar.selectbox(
+                "Select Ollama Model:",
+                available_provider_models,
+                key='selected_model'
+            )
     else:
+        selected_model = st.sidebar.selectbox(
+            f"Select {selected_provider.capitalize()} Model:", 
+            available_provider_models if available_provider_models else ["No models available"]
+        )
+        if selected_model == "No models available":
+            selected_model = None
+else:
+    selected_model = None
+
+# Ollama-specific controls (only show if Ollama provider is selected)
+if selected_provider == "ollama":
+    # Add new model section first
+    if st.sidebar.checkbox("Add new Ollama model"):
+        new_model_name = st.sidebar.text_input("Enter new model name:")
+        if st.sidebar.button("Pull New Model") and new_model_name:
+            if pull_ollama_model(new_model_name):
+                # Force refresh of model configuration after successful pull
+                model_configuration.update_ollama_models()
+                st.rerun()
+
+    # Only show other controls if there are models available
+    if selected_model:
         if st.sidebar.button("Pull Ollama Model"):
-            pull_ollama_model(selected_ollama_model)
-            st.rerun()
+            if pull_ollama_model(selected_model):
+                model_configuration.update_ollama_models()
+                st.rerun()
         
-    # Add stop and start buttons in the sidebar
-    if st.sidebar.button("Stop Ollama Service"):
-        stop_ollama_service()
-    if st.sidebar.button("Start Ollama Service"):
-        start_ollama_serve()
-    if selected_ollama_model != "Add new model" and st.sidebar.button("Remove Ollama Model"):
-        remove_ollama_model(selected_ollama_model)
-        st.rerun()
-
-selected_chain = translation_chains[f"translation_chain_{selected_model_provider}"]
-
-def generate_response(input_text, language="Finnish"):
+        if st.sidebar.button("Remove Ollama Model"):
+            if remove_ollama_model(selected_model):
+                # Force refresh of model configuration after successful removal
+                model_configuration.update_ollama_models()
+                st.rerun()
     
-    result = selected_chain.invoke({"language": language, "text": input_text})
-    st.info(result)
+    # Always show service controls
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        if st.button("Stop Service"):
+            stop_ollama_service()
+    with col2:
+        if st.button("Start Service"):
+            start_ollama_serve()
+
+def generate_response(input_text, language="Finnish", model_name=None):
+    """Generate translation response using the specified model"""
+    if model_name is None:
+        st.error("No model selected")
+        return
+        
+    chain = get_translation_chain(model_name)
+    if chain is None:
+        st.error(f"Could not initialize chain for model {model_name}")
+        return
+    
+    try:
+        result = chain.invoke({"language": language, "text": input_text})
+        st.info(result)
+    except Exception as e:
+        st.error(f"Error during translation: {str(e)}")
 
 with st.form("translation_form"):
     text = st.text_area(
@@ -151,7 +203,7 @@ with st.form("translation_form"):
     language = st.selectbox("Select target language:", ["Finnish", "French", "Spanish", "German"])
     submitted = st.form_submit_button("Translate")
     if submitted:
-        generate_response(text, language)
+        generate_response(text, language, selected_model)
 
 # Add a section to display missing API keys
 missing_keys = check_api_keys()
