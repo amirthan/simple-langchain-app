@@ -20,8 +20,12 @@ export PYTHONPATH="$(pwd)/src:$PYTHONPATH"
 
 
 # to run streamlit app
-streamlit run frontend/streamlit_app.py
+streamlit run src/frontend/streamlit_app.py
 
+
+
+##errors 
+- if you get an error about chains module not found, you need to add the python path as shown above
 
 # important links
 ## langchain

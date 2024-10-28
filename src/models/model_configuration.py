@@ -8,53 +8,49 @@ from langchain_groq import ChatGroq
 import os
 from langchain_community.llms import Ollama
 import subprocess
+from .model_catalog import MODEL_CATALOG, get_provider_info, get_model_info
 
 class ModelConfiguration:
     def __init__(self):
-        self.model_configs = {
-            "gpt-3.5-turbo": {"provider": "openai", "class": ChatOpenAI, "api_key": "OPENAI_API_KEY"},
-            "llama-3.2-3b-instruct-turbo": {"provider": "together", "class": ChatTogether, "api_key": "TOGETHER_API_KEY"},
-            "claude-3-5-sonnet": {
-                "provider": "anthropic", 
-                "class": ChatAnthropic, 
-                "api_key": "ANTHROPIC_API_KEY",
-                "extra_kwargs": {"model_name": "claude-3-sonnet-20240229"}
-            },
-            "command-r-plus": {"provider": "cohere", "class": ChatCohere, "api_key": "COHERE_API_KEY"},
-            "llama3-8b-8192": {"provider": "groq", "class": ChatGroq, "api_key": "GROQ_API_KEY"},
-            "phi-3-mini": {
-                "provider": "huggingface", 
-                "class": ChatHuggingFace,
-                "api_key": "HUGGINGFACEHUB_API_TOKEN",
-                "extra_kwargs": {
-                    "llm": HuggingFaceEndpoint(
-                        repo_id="microsoft/Phi-3-mini-4k-instruct",
-                        task="text-generation",
-                        max_new_tokens=512,
-                        do_sample=False,
-                        repetition_penalty=1.03,
-                    )
-                }
-            }
-        }
-        # Dynamically add Ollama models
+        self.model_configs = {}
+        # Initialize API models from catalog
+        self._initialize_catalog_models()
+        # Initialize Ollama models
         self.update_ollama_models()
         
+    def _initialize_catalog_models(self):
+        """Initialize models from the MODEL_CATALOG"""
+        for provider_name, provider_info in MODEL_CATALOG.items():
+            for model_name, model_info in provider_info.models.items():
+                self.model_configs[model_name] = {
+                    "provider": provider_name,
+                    "class": eval(provider_info.model_class),  # Convert string to class reference
+                    "api_key": provider_info.api_key_name,
+                    "extra_kwargs": model_info.extra_kwargs or {}
+                }
+                
+                # Special handling for HuggingFace models
+                if provider_name == "huggingface" and model_info.extra_kwargs:
+                    llm_config = model_info.extra_kwargs.get("llm", {})
+                    if llm_config:
+                        self.model_configs[model_name]["extra_kwargs"]["llm"] = \
+                            HuggingFaceEndpoint(**llm_config["kwargs"])
+
     def update_ollama_models(self):
         """Update available Ollama models from the system"""
         try:
-            # First, remove all existing Ollama models from model_configs
+            # Remove existing Ollama models
             self.model_configs = {
                 name: config for name, config in self.model_configs.items() 
                 if config["provider"] != "ollama"
             }
             
-            # Now fetch and add current Ollama models
+            # Add current Ollama models
             result = subprocess.run(['ollama', 'list'], capture_output=True, text=True)
             if result.returncode == 0:
-                models = result.stdout.strip().split('\n')[1:]  # Skip header
+                models = result.stdout.strip().split('\n')[1:]
                 for model in models:
-                    if model.strip():  # Check if model line is not empty
+                    if model.strip():
                         model_name = model.split()[0]
                         self.model_configs[model_name] = {
                             "provider": "ollama",
@@ -76,11 +72,22 @@ class ModelConfiguration:
         """Get a chat model instance based on model name"""
         if model_name not in self.model_configs:
             raise ValueError(f"Unknown model: {model_name}")
-            
+        
         config = self.model_configs[model_name]
         model_class = config["class"]
+        kwargs = config.get("extra_kwargs", {}).copy()
         
-        kwargs = config.get("extra_kwargs", {})
+        # Add model name and temperature for API-based models
+        if config["provider"] != "ollama":
+            # Get the actual model name from the catalog
+            provider = config["provider"]
+            model_info = get_model_info(provider, model_name)
+            if model_info:
+                kwargs["model"] = model_info.name  # Use the name from ModelInfo
+                kwargs["temperature"] = 0
+            else:
+                print(f"Warning: Model {model_name} not found in catalog")
+                return None
         
         if "api_key" in config:
             api_key = self.get_api_key(config["api_key"])
@@ -92,12 +99,12 @@ class ModelConfiguration:
         try:
             return model_class(**kwargs)
         except Exception as e:
-            print(f"Warning: {model_name} not initialized. Error: {str(e)}")
+            print(f"Warning: Could not initialize {model_name}. Error: {str(e)}")
             return None
 
     def get_available_models(self):
         """Get list of all available models"""
-        self.update_ollama_models()  # Refresh Ollama models
+        self.update_ollama_models()
         return list(self.model_configs.keys())
 
     def get_provider(self, model_name):
@@ -108,30 +115,28 @@ class ModelConfiguration:
 
     def get_providers(self):
         """Get list of all available providers"""
-        # Always include Ollama in providers list, even if no models are currently available
         providers = set(config["provider"] for config in self.model_configs.values())
-        providers.add("ollama")  # Add Ollama provider regardless of model availability
+        providers.add("ollama")
         return sorted(providers)
 
     def get_models_by_provider(self):
         """Get dictionary of providers and their available models"""
-        self.update_ollama_models()  # Refresh Ollama models
+        self.update_ollama_models()
         models_by_provider = {}
         
-        # Initialize all providers with empty lists
+        # Initialize providers
         for provider in self.get_providers():
             if provider == "ollama":
-                # For Ollama, if no models are available, add "No models available" placeholder
                 ollama_models = [model_name for model_name, config in self.model_configs.items() 
                                if config["provider"] == "ollama"]
                 models_by_provider["ollama"] = ollama_models if ollama_models else ["No models available"]
             else:
                 models_by_provider[provider] = []
         
-        # Add models to their respective providers (except Ollama which is already handled)
+        # Add models to providers
         for model_name, config in self.model_configs.items():
             provider = config["provider"]
-            if provider != "ollama":  # Skip Ollama as it's already handled
+            if provider != "ollama":
                 models_by_provider[provider].append(model_name)
         
         return models_by_provider
