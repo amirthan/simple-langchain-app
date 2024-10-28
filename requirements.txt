@@ -6,3 +6,5 @@ langchain-cohere
 langchain-groq
 langchain-huggingface
 langchain-community
+langchain-ollama
+

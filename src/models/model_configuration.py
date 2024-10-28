@@ -5,6 +5,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_cohere import ChatCohere
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_groq import ChatGroq
+from langchain_ollama import ChatOllama
 import os
 from langchain_community.llms import Ollama
 import subprocess
@@ -54,8 +55,8 @@ class ModelConfiguration:
                         model_name = model.split()[0]
                         self.model_configs[model_name] = {
                             "provider": "ollama",
-                            "class": Ollama,
-                            "extra_kwargs": {"model": model_name}
+                            "class": ChatOllama,
+                            "extra_kwargs": {"model": model_name, "temperature": 0}
                         }
         except Exception as e:
             print(f"Warning: Could not fetch Ollama models: {str(e)}")
