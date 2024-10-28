@@ -85,7 +85,7 @@ class ModelConfiguration:
             model_info = get_model_info(provider, model_name)
             if model_info:
                 kwargs["model"] = model_info.name  # Use the name from ModelInfo
-                kwargs["temperature"] = 0
+                kwargs["temperature"] = model_info.temperature
             else:
                 print(f"Warning: Model {model_name} not found in catalog")
                 return None

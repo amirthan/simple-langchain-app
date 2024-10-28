@@ -97,3 +97,11 @@ https://docs.streamlit.io/develop/tutorials
 ## to use ollama with huggingface
 
 https://huggingface.co/docs/hub/en/ollama
+
+## Replicat
+
+https://replicate.com/pricing
+
+https://replicate.com/docs
+
+https://replicate.com/explore

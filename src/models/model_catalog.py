@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
 
 @dataclass
@@ -8,7 +8,8 @@ class ModelInfo:
     input_cost_per_1k: float
     output_cost_per_1k: float
     description: str = ""
-    extra_kwargs: Dict[str, Any] = None
+    temperature: float = 0.2
+    extra_kwargs: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
 class ProviderInfo:
@@ -28,14 +29,16 @@ MODEL_CATALOG = {
                 context_window=16385,
                 input_cost_per_1k=0.0005,
                 output_cost_per_1k=0.0015,
-                description="Most capable GPT-3.5 model for chat completion"
+                description="Most capable GPT-3.5 model for chat completion",
+                temperature=0.2
             ),
             "gpt-4": ModelInfo(
                 name="gpt-5",
                 context_window=8192,
                 input_cost_per_1k=0.03,
                 output_cost_per_1k=0.06,
-                description="Most capable GPT-4 model"
+                description="Most capable GPT-4 model",
+                temperature=0.2
             )
         }
     ),
@@ -50,6 +53,7 @@ MODEL_CATALOG = {
                 input_cost_per_1k=0.0015,
                 output_cost_per_1k=0.0015,
                 description="Anthropic's latest model, balanced between intelligence and speed",
+                temperature=0.2,
                 extra_kwargs={"model_name": "claude-3-sonnet-20240229"}
             )
         }
@@ -64,7 +68,8 @@ MODEL_CATALOG = {
                 context_window=4096,
                 input_cost_per_1k=0.0002,
                 output_cost_per_1k=0.0002,
-                description="Optimized Llama model for instruction following"
+                description="Optimized Llama model for instruction following",
+                temperature=0.2
             )
         }
     ),
@@ -78,7 +83,8 @@ MODEL_CATALOG = {
                 context_window=128000,
                 input_cost_per_1k=0.0015,
                 output_cost_per_1k=0.0015,
-                description="Cohere's most capable model"
+                description="Cohere's most capable model",
+                temperature=0.2
             )
         }
     ),
@@ -92,7 +98,8 @@ MODEL_CATALOG = {
                 context_window=8192,
                 input_cost_per_1k=0.0001,
                 output_cost_per_1k=0.0001,
-                description="Optimized Llama model with Groq's infrastructure"
+                description="Optimized Llama model with Groq's infrastructure",
+                temperature=0.2
             )
         }
     ),
@@ -107,6 +114,7 @@ MODEL_CATALOG = {
                 input_cost_per_1k=0.0,
                 output_cost_per_1k=0.0,
                 description="Microsoft's compact yet capable language model",
+                temperature=0.2,
                 extra_kwargs={
                     "llm": {
                         "class": "HuggingFaceEndpoint",
@@ -123,6 +131,10 @@ MODEL_CATALOG = {
         }
     )
 }
+
+
+# TODO: Add replicate provider
+
 
 def get_provider_info(provider_name: str) -> Optional[ProviderInfo]:
     return MODEL_CATALOG.get(provider_name)
