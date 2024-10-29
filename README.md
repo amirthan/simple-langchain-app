@@ -1,34 +1,53 @@
-# install virtual environment
+# AI Chat Application
+
+A versatile chat application that supports multiple AI models including OpenAI, Anthropic, Google, Cohere, Together.ai, Groq, and Hugging Face models. Built with Python, LangChain, and Streamlit.
+
+## Features
+
+- 🤖 Multi-model support: Chat with various AI models
+- 🔄 Easy model switching: Switch between different AI providers seamlessly
+- 💬 Interactive chat interface: Built with Streamlit for a smooth user experience
+- 🔑 Secure API key management: Local environment variable support
+- 🎯 Flexible deployment: Run locally or deploy to cloud
+
+## Installation
+
+### Prerequisites
+- Python 3.8 or higher
+- pip package manager
+
+### Setup Steps
+
+1. Create and activate a virtual environment:
+
+# Create virtual environment
 python -m venv .venv
 
-# activate virtual environment
+# Activate virtual environment
 source .venv/bin/activate
 
-# copy .env.example to .env.local and add your API key
+# Copy .env.example to .env.local and add your API key
 cp .env.example .env.local
 
-# install requirements
+# Install requirements
 pip install -r requirements.txt
 
-# run main.py
+# Run main.py
 python main.py
 
-# setup python path
+# Setup Python path
 unset PYTHONPATH
 echo $PYTHONPATH
 export PYTHONPATH="$(pwd)/src:$PYTHONPATH"
 
-
-# to run streamlit app
+# To run streamlit app
 streamlit run src/frontend/streamlit_app.py
 
+## Errors
+- If you get an error about chains module not found, you need to add the Python path as shown above
 
-
-##errors 
-- if you get an error about chains module not found, you need to add the python path as shown above
-
-# important links
-## langchain
+# Important links
+## Langchain
 
 https://python.langchain.com/api_reference/
 
@@ -38,32 +57,31 @@ https://python.langchain.com/docs/integrations/chat/
 
 https://python.langchain.com/docs/integrations/providers/
 
-### How to guide from langchain 
+### How to guide from langchain
 
 https://python.langchain.com/docs/how_to/
 
-
-## openai
+## Openai
 
 https://platform.openai.com/docs/models
 
-## together
+## Together
 
 https://api.together.ai/models
 
-## anthropic
+## Anthropic
 
 https://console.anthropic.com/dashboard
 
 https://docs.anthropic.com/en/docs/about-claude/models
 
-## cohere
+## Cohere
 
 https://dashboard.cohere.com/
 
 https://docs.cohere.com/docs/models
 
-## google
+## Google
 
 https://ai.google.dev/gemini-api
 
@@ -71,12 +89,11 @@ https://ai.google.dev/gemini-api/docs/models/gemini
 
 https://cloud.google.com/vertex-ai
 
-
-## groq
+## Groq
 
 https://console.groq.com/docs/models
 
-## huggingface
+## Huggingface
 
 https://huggingface.co/
 The list of avaialble models could be found here https://huggingface.co/models
@@ -85,8 +102,7 @@ you can define other parameters pipelinekwargs, model_kwargs based on your needs
 
 Huggingface integration https://python.langchain.com/docs/integrations/providers/huggingface/
 
-
-## streamlit
+## Streamlit
 
 https://docs.streamlit.io/
 
@@ -94,7 +110,7 @@ https://docs.streamlit.io/develop/tutorials
 
 ## Huggingface
 
-## to use ollama with huggingface
+## To use ollama with huggingface
 
 https://huggingface.co/docs/hub/en/ollama
 
